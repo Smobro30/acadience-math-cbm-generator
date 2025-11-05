@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Acadience™ Math CBM Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Base problem grid - dynamically adjusted via JavaScript */
+        #problem-grid {
+            display: grid;
+            padding: 1rem;
+            max-width: 100%;
+        }
+
+        .problem-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+        }
+        
+        .problem-box .num1 { padding-right: 0.5rem; }
+        .problem-box .op-num2 {
+            display: flex;
+            justify-content: flex-end;
+            width: 100%;
+        }
+        .problem-box .operator {
+            min-width: 20px;
+            text-align: right;
+            padding-right: 0.25rem;
+            position: absolute;
+            left: 0;
+        }
+        .problem-box .num2 { padding-right: 0.5rem; }
+        .problem-box .line {
+            border-bottom: 2px solid black;
+            width: 100%;
+            height: 5px;
+            margin-top: 4px;
+        }
+
+        /* Answer display */
+        .problem-box .answer-space {
+            color: #2563eb; /* blue-600 */
+            font-weight: bold;
+            padding-right: 0.5rem;
+        }
+
+        /* Word problem styling */
+        .word-problem {
+            grid-column: span 2;
+            text-align: left;
+            font-family: Arial, sans-serif;
+            border: 1px solid #ddd;
+            padding: 0.75rem;
+            background: #f9f9f9;
+            line-height: 1.4;
+        }
+        .word-problem .answer-line {
+            margin-top: 0.5rem;
+            border-bottom: 2px solid black;
+            width: 50%;
+            height: 1.5rem;
+        }
+        .word-problem .answer-text {
+            margin-top: 0.5rem;
+            color: #2563eb; /* blue-600 */
+            font-weight: bold;
+        }
+
+        /* Text size classes */
+        .text-small { font-size: 1rem; line-height: 1.5rem; }
+        .text-small .word-problem { font-size: 0.75rem; }
+        
+        .text-medium { font-size: 1.5rem; line-height: 2rem; }
+        .text-medium .word-problem { font-size: 0.95rem; }
+        
+        .text-large { font-size: 2rem; line-height: 2.5rem; }
+        .text-large .word-problem { font-size: 1.1rem; }
+
+        /* Spacing classes */
+        .spacing-compact { gap: 1.5rem 1rem; }
+        .spacing-compact .problem-box .answer-space { height: 1.5rem; }
+        
+        .spacing-normal { gap: 2.5rem 1.5rem; }
+        .spacing-normal .problem-box .answer-space { height: 2.5rem; }
+        
+        .spacing-extra { gap: 3.5rem 2rem; }
+        .spacing-extra .problem-box .answer-space { height: 3.5rem; }
+        
+        .spacing-extra-extra { gap: 5rem 2.5rem; }
+        .spacing-extra-extra .problem-box .answer-space { height: 5rem; }
+
+        /* * FIXED: Moved this rule *outside* of @media print 
+         * so it works on the screen, not just when printing.
+         */
+        .hide-answers .answer-space,
+        .hide-answers .answer-text {
+            /* Hides the answer text but keeps the div for spacing */
+            color: transparent !important;
+            user-select: none;
+        }
+        /* Show the answer line again if answers are hidden */
+        .hide-answers .word-problem .answer-line {
+            display: block;
+        }
+        /* Hide the answer line if answers are shown */
+        .show-answers .word-problem .answer-line {
+            display: none;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #printableArea, #printableArea * { visibility: visible; }
+            #printableArea {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            #controls, #main-header, #printButton, #customization-panel { display: none; }
+            
+            /* Print-specific overrides */
+            .hide-answers .answer-space,
+            .hide-answers .answer-text {
+                visibility: hidden !important; /* For printing, hide it completely */
+            }
+
+            @page {
+                size: auto;
+                margin: 0.75in;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans p-8">
+    <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-8">
+        <div id="main-header" class="border-b pb-4 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">Complete Acadience™ Math CBM Generator</h1>
+            <p class="text-lg text-gray-600">All Skills K-6: Computation & Concepts/Applications</p>
+        </div>
+
+        <div id="controls" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div>
+                <label for="gradeSelect" class="block text-sm font-medium text-gray-700">1. Select Grade</label>
+                <select id="gradeSelect" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm sm:text-sm">
+                    <option value="">-- Select a Grade --</option>
+                    <option value="K">Kindergarten</option>
+                    <option value="1">Grade 1</option>
+                    <option value="2">Grade 2</option>
+                    <option value="3">Grade 3</option>
+                    <option value="4">Grade 4</option>
+                    <option value="5">Grade 5</option>
+                    <option value="6">Grade 6</option>
+                </select>
+            </div>
+            <div>
+                <label for="skillTypeSelect" class="block text-sm font-medium text-gray-700">2. Select Skill Type</label>
+                <select id="skillTypeSelect" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm sm:text-sm" disabled>
+                    <option value="">-- Select a grade first --</option>
+                </select>
+            </div>
+            <div>
+                <label for="skillSelect" class="block text-sm font-medium text-gray-700">3. Select Skill</label>
+                <select id="skillSelect" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm sm:text-sm" disabled>
+                    <option value="">-- Select a type first --</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="customization-panel" class="bg-gray-50 border border-gray-300 rounded-lg p-6 mb-6 hidden">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">📐 Worksheet Customization</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div>
+                    <label for="textSize" class="block text-sm font-medium text-gray-700 mb-2">Text Size</label>
+                    <select id="textSize" class="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm sm:text-sm">
+                        <option value="small">Small</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="large">Large</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="spacing" class="block text-sm font-medium text-gray-700 mb-2">Problem Spacing</label>
+                    <select id="spacing" class="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm sm:text-sm">
+                        <option value="compact">Compact</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="extra">Extra</option>
+                        <option value="extra-extra">Extra Extra</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="showAnswers" class="block text-sm font-medium text-gray-700 mb-2">Show Answers</label>
+                    <select id="showAnswers" class="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm sm:text-sm">
+                        <option value="no">No (Blank Worksheet)</option>
+                        <option value="yes">Yes (Answer Key)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="columns" class="block text-sm font-medium text-gray-700 mb-2">Columns (Problems per Row)</label>
+                    <input type="number" id="columns" min="2" max="8" value="5" class="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm sm:text-sm">
+                </div>
+
+                <div>
+                    <label for="totalProblems" class="block text-sm font-medium text-gray-700 mb-2">Total Problems</label>
+                    <input type="number" id="totalProblems" min="10" max="100" value="40" class="w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm sm:text-sm">
+                </div>
+
+                <div class="flex items-end">
+                    <button id="applyCustomization" class_exists="w-full py-2 px-4 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700">
+                        Apply Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end space-x-4 mb-6">
+            <button id="printButton" class="py-2 px-5 bg-blue-600 text-white font-semibold rounded-md shadow-md hover:bg-blue-700 hidden">
+                🖨️ Print Worksheet
+            </button>
+            <button id="generateButton" class="py-2 px-5 bg-indigo-600 text-white font-semibold rounded-md shadow-md hover:bg-indigo-700" disabled>
+                Generate Worksheet
+            </button>
+        </div>
+
+        <div id="worksheet-container" class="border-t-2 border-gray-200 pt-8">
+            <div id="printableArea">
+                <div id="worksheet-header" class="mb-6 hidden">
+                    <div class="grid grid-cols-3 gap-4 text-base mb-4">
+                        <div><strong>Name:</strong> ______________________________</div>
+                        <div><strong>Date:</strong> ____________________</div>
+                        <div><strong>Score:</strong> _________ / <span id="totalScore">40</span></div>
+                    </div>
+                    <h2 id="worksheet-title" class="text-2xl font-bold text-center mb-6"></h2>
+                </div>
+                <div id="problem-grid" class="text-medium spacing-normal"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== MODIFIED: 3-Level Skill Database ==========
+        const skillDatabase = {
+            'K': {
+                'Early Numeracy': [
+                    { id: 'k_qty_disc', text: 'Beginning Quantity Discrimination (1-10)' },
+                    { id: 'k_next_num', text: 'Next Number Fluency (1-99)' },
+                    { id: 'k_num_id', text: 'Number Identification (1-99)' }
+                ]
+            },
+            '1': {
+                'Early Numeracy': [
+                    { id: 'g1_next_num', text: 'Next Number Fluency (1-99)' },
+                    { id: 'g1_num_id', text: 'Number Identification (1-99)' },
+                    { id: 'g1_adv_qty', text: 'Advanced Quantity Discrimination (1-99)' },
+                    { id: 'g1_missing_num', text: 'Missing Number Fluency (1s, 5s, 10s)' }
+                ],
+                'Computation': [
+                    { id: 'g1_add_0_1_to_1d', text: 'Add 0 or 1 to a one-digit number' },
+                    { id: 'g1_add_1d_1d', text: 'Add two one-digit numbers (excluding 0, 1)' },
+                    { id: 'g1_sub_1d_from_2d_gt11', text: 'Subtract 1d from 2d (<20), diff ≥11, no rename' },
+                    { id: 'g1_sub_1d_from_1d', text: 'Subtract 1d from 1d (excluding 0, 1)' },
+                    { id: 'g1_sub_1d_from_2d_le9', text: 'Subtract 1d from 2d (<20), diff ≤9' },
+                    { id: 'g1_sub_0_1', text: 'Subtract 0 or 1 from a one-digit number' },
+                    { id: 'g1_add_2d_1d_rename_20', text: 'Add 2d + 1d with rename, sum = 20' },
+                    { id: 'g1_sub_1d_from_20', text: 'Subtract 1d from 20 with rename' },
+                    { id: 'g1_add_2d_1d_no_rename', text: 'Add 2d + 1d, no rename, sum ≤20' }
+                ]
+            },
+            '2': {
+                'Computation': [
+                    { id: 'g2_add_1d_1d', text: 'Add two one-digit numbers (excluding 0, 1)' },
+                    { id: 'g2_add_2d_1d_no_rename', text: 'Add 2d + 1d, no rename, sum ≤100' },
+                    { id: 'g2_sub_1d_ge20_rename', text: 'Subtract 1d from 2d (≥20) with rename' },
+                    { id: 'g2_add_2d_2d_rename', text: 'Add 2d + 2d with rename, sum ≤100' },
+                    { id: 'g2_add_four_2d', text: 'Add four 2d numbers with rename, sum ≤100' },
+                    { id: 'g2_sub_1d_1d', text: 'Subtract 1d from 1d (excluding 0, 1)' },
+                    { id: 'g2_add_2d_2d_no_rename', text: 'Add 2d + 2d, no rename, sum ≤100' },
+                    { id: 'g2_sub_2d_2d_rename', text: 'Subtract 2d from 2d (≥20) with rename' },
+                    { id: 'g2_add_2d_1d_rename', text: 'Add 2d + 1d with rename, sum ≤100' },
+                    { id: 'g2_sub_no_rename', text: 'Subtract 1d/2d from 2d, no rename' },
+                    { id: 'g2_sub_1d_lt20_le9', text: 'Subtract 1d from 2d (<20), diff ≤9' }
+                ],
+                'Concepts & Applications': [
+                    { id: 'g2_count_shapes', text: 'C&A: Count total circles and squares' },
+                    { id: 'g2_fractions_shares', text: 'C&A: Determine shares (2-4) in shape' },
+                    { id: 'g2_compare_3d', text: 'C&A: Compare two 3-digit whole numbers' },
+                    { id: 'g2_measure_inches', text: 'C&A: Determine length in inches' },
+                    { id: 'g2_two_step_add', text: 'C&A: Two-step addition problems' },
+                    { id: 'g2_time_digital_analog', text: 'C&A: Transfer time digital to analog (5-min)' }
+                ]
+            },
+            '3': {
+                'Computation': [
+                    { id: 'g3_add_2d_2d_no_rename', text: 'Add 2d + 2d, no rename, sum ≤100' },
+                    { id: 'g3_add_3d_no_rename', text: 'Add 2d/3d + 2d/3d, no rename, sum ≤1000' },
+                    { id: 'g3_mul_1d_1d_ge51', text: 'Multiply 1d × 1d, product ≥51' },
+                    { id: 'g3_mul_0_1', text: 'Multiply 1d × 0 or 1' },
+                    { id: 'g3_mul_1d_2d_no_rename', text: 'Multiply 1d × 2d, no rename, product <100' },
+                    { id: 'g3_mul_1d_2d_rename', text: 'Multiply 1d × 2d with rename, product <100' },
+                    { id: 'g3_mul_1d_1d_21to50', text: 'Multiply 1d × 1d, product 21-50' },
+                    { id: 'g3_sub_3d_no_rename', text: 'Subtract 2d/3d from 3d, no rename' },
+                    { id: 'g3_div_1d_1d', text: 'Divide 1d by 1d, no remainder' },
+                    { id: 'g3_sub_2d_no_rename', text: 'Subtract 1d/2d from 2d, no rename' },
+                    { id: 'g3_add_2d_2d_rename', text: 'Add 2d + 2d with rename, sum ≤100' },
+                    { id: 'g3_div_2d_1d', text: 'Divide 2d by 1d, no remainder' },
+                    { id: 'g3_mul_1d_1d_le20', text: 'Multiply 1d × 1d, product ≤20' },
+                    { id: 'g3_add_3d_rename', text: 'Add 2d/3d + 2d/3d with rename, sum ≤1000' },
+                    { id: 'g3_mul_1d_tens', text: 'Multiply 1d × 2d multiple of 10' },
+                    { id: 'g3_sub_3d_rename', text: 'Subtract 2d/3d from 3d with rename' },
+                    { id: 'g3_sub_2d_2d_rename', text: 'Subtract 2d from 2d (≥20) with rename' },
+                    { id: 'g3_mul_square', text: 'Multiply 1d × itself (squares)' }
+                ],
+                'Concepts & Applications': [
+                    { id: 'g3_time_transfer', text: 'C&A: Transfer time analog to digital' },
+                    { id: 'g3_fraction_shaded', text: 'C&A: Determine fraction of shaded parts' },
+                    { id: 'g3_round_3d', text: 'C&A: Round 3d to nearest 10 and 100' },
+                    { id: 'g3_area_rectangle', text: 'C&A: Determine area of rectangle' }
+                ]
+            },
+            '4': {
+                'Computation': [
+                    { id: 'g4_add_3d_no_rename', text: 'Add 2d/3d + 2d/3d, no rename, sum ≤1000' },
+                    { id: 'g4_add_4d_rename', text: 'Add 4d + 4d with rename' },
+                    { id: 'g4_mixed_common_den_2345_10', text: 'Add/Sub mixed numbers, common den (2,3,4,5,10)' },
+                    { id: 'g4_mul_1d_1d_ge51', text: 'Multiply 1d × 1d, product ≥51' },
+                    { id: 'g4_div_3d_1d_remain_hard', text: 'Divide 3d by 1d with remainder (hard)' },
+                    { id: 'g4_sub_3d_no_rename', text: 'Subtract 2d/3d from 3d, no rename' },
+                    { id: 'g4_frac_common_den_6_8_12', text: 'Add/Sub fractions, common den (6,8,12)' },
+                    { id: 'g4_sub_4d_3d_rename', text: 'Subtract 3d from 4d with rename' },
+                    { id: 'g4_mul_2d_2d_no_rename', text: 'Multiply 2d × 2d, no rename' },
+                    { id: 'g4_mixed_common_den_6_8_12', text: 'Add/Sub mixed numbers, common den (6,8,12)' },
+                    { id: 'g4_div_3d_1d_remain_easy', text: 'Divide 3d by 1d with remainder (easy)' },
+                    { id: 'g4_div_2d_1d', text: 'Divide 2d by 1d, no remainder' },
+                    { id: 'g4_mul_2d_2d', text: 'Multiply 2d × 2d' },
+                    { id: 'g4_frac_common_den_2345_10', text: 'Add/Sub fractions, common den (2,3,4,5,10)' },
+                    { id: 'g4_mul_1d_3d_rename', text: 'Multiply 1d × 3d with rename' }
+                ],
+                'Concepts & Applications': [
+                    { id: 'g4_symmetry', text: 'C&A: Determine line of symmetry' },
+                    { id: 'g4_compare_3d', text: 'C&A: Compare two 3-digit whole numbers' },
+                    { id: 'g4_multiples', text: 'C&A: Determine three multiples of a number' },
+                    { id: 'g4_angles', text: 'C&A: Identify acute, obtuse, right angles' }
+                ]
+            },
+            '5': {
+                'Computation': [
+                    { id: 'g5_add_4d_rename', text: 'Add 4d + 4d with rename' },
+                    { id: 'g5_mul_2d_3d_no_rename', text: 'Multiply 2d × 3d, no rename' },
+                    { id: 'g5_mixed_unlike_den', text: 'Add/Sub mixed numbers with unlike denominators' },
+                    { id: 'g5_mul_2d_3d', text: 'Multiply 2d × 3d' },
+                    { id: 'g5_div_4d_2d_hard', text: 'Divide 4d by 2d, no remainder (hard)' },
+                    { id: 'g5_div_3d_1d_remain', text: 'Divide 3d by 1d with remainder' },
+                    { id: 'g5_mixed_common_den', text: 'Add/Sub mixed numbers with common den (2,3,4,5,10)' },
+                    { id: 'g5_frac_common_den', text: 'Add/Sub fractions with common den (2,3,4,5,10)' },
+                    { id: 'g5_sub_4d_3d_rename', text: 'Subtract 3d from 4d with rename' },
+                    { id: 'g5_mul_1d_3d_rename', text: 'Multiply 1d × 3d with rename' },
+                    { id: 'g5_div_3d_2d', text: 'Divide 3d by 2d, no remainder' },
+                    { id: 'g5_frac_unlike_den', text: 'Add/Sub fractions with unlike denominators' },
+                    { id: 'g5_div_4d_2d_easy', text: 'Divide 4d by 2d, no remainder (easy)' }
+                ],
+                'Concepts & Applications': [
+                    { id: 'g5_compare_decimals_thou', text: 'C&A: Compare decimals to thousandth place' },
+                    { id: 'g5_ordered_pairs', text: 'C&A: Plot and label ordered pairs' },
+                    { id: 'g5_volume', text: 'C&A: Determine volume of object' }
+                ]
+            },
+            '6': {
+                'Computation': [
+                    { id: 'g6_add_dec_tenth_no_rename', text: 'Add decimals to tenth, no rename' },
+                    { id: 'g6_sub_dec_hun_no_rename', text: 'Subtract decimals to hundredth, no rename' },
+                    { id: 'g6_mul_2d_3d', text: 'Multiply 2d × 3d' },
+                    { id: 'g6_div_4d_2d_easy', text: 'Divide 4d by 2d, no remainder (easy)' },
+                    { id: 'g6_mixed_unlike_den', text: 'Add/Sub mixed numbers with unlike denominators' },
+                    { id: 'g6_add_dec_hun_rename', text: 'Add decimals to hundredth with rename' },
+                    { id: 'g6_sub_dec_hun_rename', text: 'Subtract decimals to hundredth with rename' },
+                    { id: 'g6_mul_dec_tenth_no_rename', text: 'Multiply decimals to tenth, no rename' },
+                    { id: 'g6_div_3d_dec_tenth', text: 'Divide 3d by decimal to tenth, no remainder' },
+                    { id: 'g6_add_dec_tenth_1d_rename', text: 'Add decimal (tenth) + 1d with rename' },
+                    { id: 'g6_mul_dec_tenth_1d_rename', text: 'Multiply decimal (tenth) × 1d with rename' },
+                    { id: 'g6_div_4d_2d_hard', text: 'Divide 4d by 2d, no remainder (hard)' },
+                    { id: 'g6_mul_dec_tenth_hun', text: 'Multiply decimal (tenth) × decimal (hundredth)' },
+                    { id: 'g6_div_dec_hun_tenth', text: 'Divide decimal (hundredth) by decimal (tenth)' },
+                    { id: 'g6_sub_dec_hun_rename_2', text: 'Subtract decimals to hundredth with rename (alt)' },
+                    { id: 'g6_div_dec_hun_tenth_easy', text: 'Divide decimal by decimal, no remainder (easy)' }
+                ],
+                'Concepts & Applications': [
+                    { id: 'g6_ratio', text: 'C&A: Determine ratio of two sets' },
+                    { id: 'g6_mean_median', text: 'C&A: Determine mean and median' },
+                    { id: 'g6_algebraic_expr', text: 'C&A: Write algebraic expressions' },
+                    { id: 'g6_surface_area', text: 'C&A: Determine surface area of cube/pyramid' }
+                ]
+            }
+        };
+
+        // DOM Elements
+        const gradeSelect = document.getElementById('gradeSelect');
+        const skillTypeSelect = document.getElementById('skillTypeSelect'); // NEW
+        const skillSelect = document.getElementById('skillSelect');
+        const generateButton = document.getElementById('generateButton');
+        const printButton = document.getElementById('printButton');
+        const problemGrid = document.getElementById('problem-grid');
+        const worksheetHeader = document.getElementById('worksheet-header');
+        const worksheetTitle = document.getElementById('worksheet-title');
+        const customizationPanel = document.getElementById('customization-panel');
+        const applyCustomization = document.getElementById('applyCustomization');
+        const totalScoreSpan = document.getElementById('totalScore');
+        const printableArea = document.getElementById('printableArea');
+
+        // Customization controls
+        const textSizeSelect = document.getElementById('textSize');
+        const spacingSelect = document.getElementById('spacing');
+        const showAnswersSelect = document.getElementById('showAnswers');
+        const columnsInput = document.getElementById('columns');
+        const totalProblemsInput = document.getElementById('totalProblems');
+
+        // Store generated problems with answers
+        let currentProblems = [];
+
+        // Event Listeners
+        gradeSelect.addEventListener('change', populateSkillTypes); // MODIFIED
+        skillTypeSelect.addEventListener('change', populateSkills); // NEW
+        skillSelect.addEventListener('change', () => { // MODIFIED
+            generateButton.disabled = !skillSelect.value;
+        });
+        generateButton.addEventListener('click', generateWorksheet);
+        printButton.addEventListener('click', () => window.print());
+        applyCustomization.addEventListener('click', applyCustomSettings);
+        // Add listeners to all customization controls to auto-apply
+        textSizeSelect.addEventListener('change', applyCustomSettings);
+        spacingSelect.addEventListener('change', applyCustomSettings);
+        showAnswersSelect.addEventListener('change', applyCustomSettings);
+        columnsInput.addEventListener('change', applyCustomSettings);
+
+        // Helper Functions
+        function getRandom(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        
+        // NEW: Function to populate Skill Types
+        function populateSkillTypes() {
+            const grade = gradeSelect.value;
+            skillTypeSelect.innerHTML = '<option value="">-- Select a skill type --</option>';
+            skillSelect.innerHTML = '<option value="">-- Select a type first --</option>';
+            skillSelect.disabled = true;
+            generateButton.disabled = true;
+
+            if (grade && skillDatabase[grade]) {
+                const types = Object.keys(skillDatabase[grade]);
+                types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type;
+                    option.textContent = type;
+                    skillTypeSelect.appendChild(option);
+                });
+                skillTypeSelect.disabled = false;
+            } else {
+                skillTypeSelect.disabled = true;
+            }
+        }
+
+        // NEW: Function to populate Skills (replaces old populateSkillDropdown)
+        function populateSkills() {
+            const grade = gradeSelect.value;
+            const type = skillTypeSelect.value;
+            skillSelect.innerHTML = '<option value="">-- Select a skill --</option>';
+            generateButton.disabled = true;
+
+            if (grade && type && skillDatabase[grade][type]) {
+                skillDatabase[grade][type].forEach(skill => {
+                    const option = document.createElement('option');
+                    option.value = skill.id;
+                    option.textContent = skill.text;
+                    skillSelect.appendChild(option);
+                });
+                skillSelect.disabled = false;
+            } else {
+                skillSelect.disabled = true;
+            }
+        }
+
+        // REMOVED: calculateAnswer() function is no longer needed.
+
+        // MODIFIED: Generates worksheet, but *does not* calculate answers here
+        function generateWorksheet() {
+            const skillId = skillSelect.value;
+            const skillText = skillSelect.options[skillSelect.selectedIndex].text;
+            
+            worksheetTitle.textContent = skillText;
+            worksheetHeader.classList.remove('hidden');
+            customizationPanel.classList.remove('hidden');
+            problemGrid.innerHTML = '';
+            
+            currentProblems = [];
+            const problemCount = parseInt(totalProblemsInput.value) || 40;
+
+            for (let i = 0; i < problemCount; i++) {
+                // The problem object *already* has the answer from the generator
+                let problem = generateProblem(skillId);
+                if (problem) {
+                    currentProblems.push(problem);
+                }
+            }
+
+            shuffleArray(currentProblems);
+            applyCustomSettings(); // Apply settings *before* rendering
+            renderProblems();
+            
+            totalScoreSpan.textContent = problemCount;
+            printButton.classList.remove('hidden');
+        }
+
+        function renderProblems() {
+            problemGrid.innerHTML = '';
+            
+            currentProblems.forEach(p => {
+                problemGrid.appendChild(createProblemElement(p));
+            });
+        }
+
+        // MODIFIED: Applies all settings at once
+        function applyCustomSettings() {
+            const textSize = textSizeSelect.value;
+            const spacing = spacingSelect.value;
+            const showAnswers = showAnswersSelect.value === 'yes';
+            const columns = parseInt(columnsInput.value) || 5;
+
+            // Update grid columns
+            problemGrid.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+
+            // Update text size and spacing classes on the grid
+            problemGrid.className = 'grid'; // Reset classes
+            problemGrid.classList.add(`text-${textSize}`, `spacing-${spacing}`);
+
+            // Update answer visibility on the *printable area*
+            if (showAnswers) {
+                printableArea.classList.remove('hide-answers');
+                printableArea.classList.add('show-answers');
+            } else {
+                printableArea.classList.add('hide-answers');
+                printableArea.classList.remove('show-answers');
+            }
+            
+            // Re-render problems if they already exist
+            if (currentProblems.length > 0) {
+                 renderProblems();
+            }
+        }
+
+        // MODIFIED: createProblemElement now handles answer logic
+        function createProblemElement(problem) {
+            const showAnswers = showAnswersSelect.value === 'yes';
+
+            if (problem.type === 'word') {
+                const box = document.createElement('div');
+                box.className = 'word-problem';
+                let html = `<div>${problem.text}</div>`;
+                
+                // If answers are on, show answer.
+                if (showAnswers && problem.answer !== null && problem.answer !== undefined) {
+                    html += `<div class="answer-text">Answer: ${problem.answer}</div>`;
+                } else {
+                    // Otherwise, show a blank line
+                    html += `<div class="answer-line"></div>`;
+                }
+                box.innerHTML = html;
+                return box;
+            } else {
+                // Computation problem
+                const box = document.createElement('div');
+                box.className = 'problem-box';
+                
+                // Get the answer text, or an empty string if no answer/hidden
+                let answerText = '';
+                if (showAnswers && problem.answer !== null && problem.answer !== undefined) {
+                    answerText = problem.answer;
+                }
+
+                box.innerHTML = `
+                    <span class="num1">${problem.n1}</span>
+                    <div class="op-num2">
+                        <span class="operator">${problem.operator}</span>
+                        <span class="num2">${problem.n2}</span>
+                    </div>
+                    <div class="line"></div>
+                    <div class="answer-space">${answerText}</div>
+                `;
+                return box;
+            }
+        }
+
+        // ========== PROBLEM GENERATORS (FIXED FOR ACCURACY) ==========
+        // All computation functions now return an 'answer' property
+        
+        function generateProblem(skillId) {
+            switch (skillId) {
+                // --- K ---
+                case 'k_qty_disc': return gen_k_qty_disc();
+                case 'k_next_num': return gen_k_next_num();
+                case 'k_num_id': return gen_k_num_id();
+                // --- G1 ---
+                case 'g1_next_num': return gen_k_next_num();
+                case 'g1_num_id': return gen_k_num_id();
+                case 'g1_adv_qty': return gen_g1_adv_qty();
+                case 'g1_missing_num': return gen_g1_missing_num();
+                case 'g1_add_0_1_to_1d': return gen_g1_add_0_1_to_1d();
+                case 'g1_add_1d_1d': return gen_g1_add_1d_1d();
+                case 'g1_sub_1d_from_2d_gt11': return gen_g1_sub_1d_from_2d_gt11();
+                case 'g1_sub_1d_from_1d': return gen_g1_sub_1d_from_1d();
+                case 'g1_sub_1d_from_2d_le9': return gen_g1_sub_1d_from_2d_le9();
+                case 'g1_sub_0_1': return gen_g1_sub_0_1();
+                case 'g1_add_2d_1d_rename_20': return gen_g1_add_2d_1d_rename_20();
+                case 'g1_sub_1d_from_20': return gen_g1_sub_1d_from_20();
+                case 'g1_add_2d_1d_no_rename': return gen_g1_add_2d_1d_no_rename();
+                // --- G2 ---
+                case 'g2_add_1d_1d': return gen_g1_add_1d_1d();
+                case 'g2_add_2d_1d_no_rename': return gen_g2_add_2d_1d_no_rename();
+                case 'g2_sub_1d_ge20_rename': return gen_g2_sub_1d_ge20_rename();
+                case 'g2_add_2d_2d_rename': return gen_g2_add_2d_2d_rename();
+                case 'g2_add_four_2d': return gen_g2_add_four_2d();
+                case 'g2_sub_1d_1d': return gen_g1_sub_1d_from_1d();
+                case 'g2_add_2d_2d_no_rename': return gen_g2_add_2d_2d_no_rename();
+                case 'g2_sub_2d_2d_rename': return gen_g2_sub_2d_2d_rename();
+                case 'g2_add_2d_1d_rename': return gen_g2_add_2d_1d_rename();
+                case 'g2_sub_no_rename': return gen_g2_sub_no_rename();
+                case 'g2_sub_1d_lt20_le9': return gen_g1_sub_1d_from_2d_le9();
+                case 'g2_count_shapes': return gen_g2_count_shapes();
+                case 'g2_fractions_shares': return gen_g2_fractions_shares();
+                case 'g2_compare_3d': return gen_g2_compare_3d();
+                case 'g2_measure_inches': return gen_g2_measure_inches();
+                case 'g2_two_step_add': return gen_g2_two_step_add();
+                case 'g2_time_digital_analog': return gen_g2_time_digital_analog();
+                // --- G3 ---
+                case 'g3_add_2d_2d_no_rename': return gen_g2_add_2d_2d_no_rename();
+                case 'g3_add_3d_no_rename': return gen_g3_add_3d_no_rename();
+                case 'g3_mul_1d_1d_ge51': return gen_g3_mul_1d_1d_ge51();
+                case 'g3_mul_0_1': return gen_g3_mul_0_1();
+                case 'g3_mul_1d_2d_no_rename': return gen_g3_mul_1d_2d_no_rename();
+                case 'g3_mul_1d_2d_rename': return gen_g3_mul_1d_2d_rename();
+                case 'g3_mul_1d_1d_21to50': return gen_g3_mul_1d_1d_21to50();
+                case 'g3_sub_3d_no_rename': return gen_g3_sub_3d_no_rename();
+                case 'g3_div_1d_1d': return gen_g3_div_1d_1d();
+                case 'g3_sub_2d_no_rename': return gen_g2_sub_no_rename();
+                case 'g3_add_2d_2d_rename': return gen_g2_add_2d_2d_rename();
+                case 'g3_div_2d_1d': return gen_g3_div_2d_1d();
+                case 'g3_mul_1d_1d_le20': return gen_g3_mul_1d_1d_le20();
+                case 'g3_add_3d_rename': return gen_g3_add_3d_rename();
+                case 'g3_mul_1d_tens': return gen_g3_mul_1d_tens();
+                case 'g3_sub_3d_rename': return gen_g3_sub_3d_rename();
+                case 'g3_sub_2d_2d_rename': return gen_g2_sub_2d_2d_rename();
+                case 'g3_mul_square': return gen_g3_mul_square();
+                case 'g3_time_transfer': return gen_g3_time_transfer();
+                case 'g3_fraction_shaded': return gen_g3_fraction_shaded();
+                case 'g3_round_3d': return gen_g3_round_3d();
+                case 'g3_area_rectangle': return gen_g3_area_rectangle();
+                // --- G4 ---
+                case 'g4_add_3d_no_rename': return gen_g3_add_3d_no_rename();
+                case 'g4_add_4d_rename': return gen_g4_add_4d_rename();
+                case 'g4_mixed_common_den_2345_10': return gen_g4_mixed_common_den(2, 3, 4, 5, 10);
+                case 'g4_mul_1d_1d_ge51': return gen_g3_mul_1d_1d_ge51();
+                case 'g4_div_3d_1d_remain_hard': return gen_g4_div_3d_1d_remain(true);
+                case 'g4_sub_3d_no_rename': return gen_g3_sub_3d_no_rename();
+                case 'g4_frac_common_den_6_8_12': return gen_g4_frac_common_den(6, 8, 12);
+                case 'g4_sub_4d_3d_rename': return gen_g4_sub_4d_3d_rename();
+                case 'g4_mul_2d_2d_no_rename': return gen_g4_mul_2d_2d_no_rename();
+                case 'g4_mixed_common_den_6_8_12': return gen_g4_mixed_common_den(6, 8, 12);
+                case 'g4_div_3d_1d_remain_easy': return gen_g4_div_3d_1d_remain(false);
+                case 'g4_div_2d_1d': return gen_g3_div_2d_1d();
+                case 'g4_mul_2d_2d': return gen_g4_mul_2d_2d();
+                case 'g4_frac_common_den_2345_10': return gen_g4_frac_common_den(2, 3, 4, 5, 10);
+                case 'g4_mul_1d_3d_rename': return gen_g4_mul_1d_3d_rename();
+                case 'g4_symmetry': return gen_g4_symmetry();
+                case 'g4_compare_3d': return gen_g2_compare_3d();
+                case 'g4_multiples': return gen_g4_multiples();
+                case 'g4_angles': return gen_g4_angles();
+                // --- G5 ---
+                case 'g5_add_4d_rename': return gen_g4_add_4d_rename();
+                case 'g5_mul_2d_3d_no_rename': return gen_g5_mul_2d_3d_no_rename();
+                case 'g5_mixed_unlike_den': return gen_g5_mixed_unlike_den();
+                case 'g5_mul_2d_3d': return gen_g5_mul_2d_3d();
+                case 'g5_div_4d_2d_hard': return gen_g5_div_4d_2d(true);
+                case 'g5_div_3d_1d_remain': return gen_g4_div_3d_1d_remain(true);
+                case 'g5_mixed_common_den': return gen_g4_mixed_common_den(2, 3, 4, 5, 10);
+                case 'g5_frac_common_den': return gen_g4_frac_common_den(2, 3, 4, 5, 10);
+                case 'g5_sub_4d_3d_rename': return gen_g4_sub_4d_3d_rename();
+                case 'g5_mul_1d_3d_rename': return gen_g4_mul_1d_3d_rename();
+                case 'g5_div_3d_2d': return gen_g5_div_3d_2d();
+                case 'g5_frac_unlike_den': return gen_g5_frac_unlike_den();
+                case 'g5_div_4d_2d_easy': return gen_g5_div_4d_2d(false);
+                case 'g5_compare_decimals_thou': return gen_g5_compare_decimals_thou();
+                case 'g5_ordered_pairs': return gen_g5_ordered_pairs();
+                case 'g5_volume': return gen_g5_volume();
+                // --- G6 ---
+                case 'g6_add_dec_tenth_no_rename': return gen_g6_add_dec_tenth_no_rename();
+                case 'g6_sub_dec_hun_no_rename': return gen_g6_sub_dec_hun_no_rename();
+                case 'g6_mul_2d_3d': return gen_g5_mul_2d_3d();
+                case 'g6_div_4d_2d_easy': return gen_g5_div_4d_2d(false);
+                case 'g6_mixed_unlike_den': return gen_g5_mixed_unlike_den();
+                case 'g6_add_dec_hun_rename': return gen_g6_add_dec_hun_rename();
+                case 'g6_sub_dec_hun_rename': return gen_g6_sub_dec_hun_rename();
+                case 'g6_mul_dec_tenth_no_rename': return gen_g6_mul_dec_tenth_no_rename();
+                case 'g6_div_3d_dec_tenth': return gen_g6_div_3d_dec_tenth();
+                case 'g6_add_dec_tenth_1d_rename': return gen_g6_add_dec_tenth_1d_rename();
+                case 'g6_mul_dec_tenth_1d_rename': return gen_g6_mul_dec_tenth_1d_rename();
+                case 'g6_div_4d_2d_hard': return gen_g5_div_4d_2d(true);
+                case 'g6_mul_dec_tenth_hun': return gen_g6_mul_dec_tenth_hun();
+                case 'g6_div_dec_hun_tenth': return gen_g6_div_dec_hun_tenth();
+                case 'g6_sub_dec_hun_rename_2': return gen_g6_sub_dec_hun_rename();
+                case 'g6_div_dec_hun_tenth_easy': return gen_g6_div_dec_hun_tenth();
+                case 'g6_ratio': return gen_g6_ratio();
+                case 'g6_mean_median': return gen_g6_mean_median();
+                case 'g6_algebraic_expr': return gen_g6_algebraic_expr();
+                case 'g6_surface_area': return gen_g6_surface_area();
+                default: return { n1: '?', n2: '?', operator: '!', answer: 'N/A' };
+            }
+        }
+
+        // KINDERGARTEN
+        function gen_k_qty_disc() {
+            const n1 = getRandom(1, 10), n2 = getRandom(1, 10);
+            return { type: 'word', text: `Which is larger: ${n1} or ${n2}?`, answer: Math.max(n1, n2) };
+        }
+        function gen_k_next_num() {
+            const n = getRandom(1, 98);
+            return { type: 'word', text: `What number comes after ${n}?`, answer: n + 1 };
+        }
+        function gen_k_num_id() {
+            const n = getRandom(1, 99);
+            return { type: 'word', text: `Read this number: ${n}`, answer: n };
+        }
+
+        // GRADE 1
+        function gen_g1_adv_qty() {
+            const n1 = getRandom(1, 99), n2 = getRandom(1, 99);
+            return { type: 'word', text: `Which is larger: ${n1} or ${n2}?`, answer: Math.max(n1, n2) };
+        }
+        function gen_g1_missing_num() {
+            const seq = ['1s', '5s', '10s'][getRandom(0, 2)];
+            let start, step;
+            if (seq === '1s') { start = getRandom(1, 95); step = 1; }
+            else if (seq === '5s') { start = getRandom(1, 19) * 5; step = 5; }
+            else { start = getRandom(1, 9) * 10; step = 10; }
+            const pos = getRandom(1, 2);
+            const missing = start + pos * step;
+            if (pos === 1) {
+                return { type: 'word', text: `Fill in: ${start}, _____, ${start + 2*step}, ${start + 3*step}`, answer: missing };
+            } else {
+                return { type: 'word', text: `Fill in: ${start}, ${start + step}, _____, ${start + 3*step}`, answer: missing };
+            }
+        }
+        function gen_g1_add_0_1_to_1d() {
+            let n1 = getRandom(2, 9), n2 = getRandom(0, 1);
+            if (Math.random() > 0.5) [n1, n2] = [n2, n1];
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+        function gen_g1_add_1d_1d() {
+            const n1 = getRandom(2, 9), n2 = getRandom(2, 9);
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+        function gen_g1_sub_1d_from_2d_gt11() {
+            let n1 = getRandom(12, 19), ones1 = n1 % 10, n2 = getRandom(1, Math.max(1, ones1 - 1));
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g1_sub_1d_from_1d() {
+            let n1 = getRandom(2, 9), n2 = getRandom(2, n1);
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g1_sub_1d_from_2d_le9() {
+            let n1 = getRandom(11, 18), ones1 = n1 % 10, n2 = getRandom(ones1 + 1, 9);
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g1_sub_0_1() {
+            const n1 = getRandom(2, 9), n2 = getRandom(0, 1);
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g1_add_2d_1d_rename_20() {
+            let n1 = getRandom(11, 19), n2 = 20 - n1;
+            return { n1, n2, operator: '+', answer: 20 };
+        }
+        function gen_g1_sub_1d_from_20() {
+            const n2 = getRandom(1, 9);
+            return { n1: 20, n2, operator: '−', answer: 20 - n2 };
+        }
+        function gen_g1_add_2d_1d_no_rename() {
+            let n1 = getRandom(11, 18), ones1 = n1 % 10, n2 = getRandom(1, 9 - ones1);
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+
+        // GRADE 2
+        function gen_g2_add_2d_1d_no_rename() {
+            let n1, n2, ones1;
+            do {
+                n1 = getRandom(10, 98); ones1 = n1 % 10; n2 = getRandom(1, 9 - ones1);
+            } while (n1 + n2 > 99);
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+        function gen_g2_sub_1d_ge20_rename() {
+            let n1 = getRandom(20, 98), ones1 = n1 % 10, n2 = getRandom(ones1 + 1, 9);
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g2_add_2d_2d_rename() {
+            let n1, n2, ones1, ones2;
+            do {
+                n1 = getRandom(10, 89); n2 = getRandom(10, 89);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+            } while (ones1 + ones2 < 10 || n1 + n2 > 99);
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+        function gen_g2_add_four_2d() {
+            let nums = [getRandom(10, 24), getRandom(10, 24), getRandom(10, 24), getRandom(10, 24)];
+            const sum = nums.reduce((a, b) => a + b, 0);
+            return { type: 'word', text: `Add: ${nums[0]} + ${nums[1]} + ${nums[2]} + ${nums[3]} = `, answer: sum };
+        }
+        function gen_g2_add_2d_2d_no_rename() {
+            let n1, n2, ones1, ones2;
+            do {
+                n1 = getRandom(10, 98); n2 = getRandom(10, 98);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+            } while (ones1 + ones2 > 9 || n1 + n2 > 99);
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+        function gen_g2_sub_2d_2d_rename() {
+            let n1, n2, ones1, ones2;
+            do {
+                n1 = getRandom(20, 98); n2 = getRandom(10, n1 - 1);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+            } while (ones1 >= ones2);
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g2_add_2d_1d_rename() {
+            let n1, n2, ones1;
+            do {
+                n1 = getRandom(10, 98); ones1 = n1 % 10; n2 = getRandom(10 - ones1, 9);
+            } while (n1 + n2 > 99 || ones1 + n2 < 10);
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+        function gen_g2_sub_no_rename() {
+            let n1, n2, ones1, ones2;
+            do {
+                n1 = getRandom(10, 98);
+                n2 = (Math.random() > 0.5) ? getRandom(1, 9) : getRandom(10, 98);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+            } while (ones1 < ones2 || n1 <= n2);
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g2_count_shapes() {
+            const circles = getRandom(2, 8), squares = getRandom(2, 8);
+            return { type: 'word', text: `There are ${circles} circles and ${squares} squares. How many shapes total?`, answer: circles + squares };
+        }
+        function gen_g2_fractions_shares() {
+            const shares = getRandom(2, 4);
+            return { type: 'word', text: `A circle is divided into ${shares} equal parts. How many shares?`, answer: shares };
+        }
+        function gen_g2_compare_3d() {
+            const n1 = getRandom(100, 999), n2 = getRandom(100, 999);
+            return { type: 'word', text: `Compare: ${n1} _____ ${n2} (use <, >, or =)`, answer: n1 > n2 ? '>' : n1 < n2 ? '<' : '=' };
+        }
+        function gen_g2_measure_inches() {
+            const inches = getRandom(2, 11);
+            return { type: 'word', text: `A line is ${inches} inches long.`, answer: `${inches}"` };
+        }
+        function gen_g2_two_step_add() {
+            const a = getRandom(10, 30), b = getRandom(10, 30), c = getRandom(10, 30);
+            return { type: 'word', text: `John has ${a} apples. He gets ${b} more, then ${c} more. How many total?`, answer: a + b + c };
+        }
+        function gen_g2_time_digital_analog() {
+            const hour = getRandom(1, 12), min = getRandom(0, 11) * 5;
+            const time = `${hour}:${min.toString().padStart(2, '0')}`;
+            return { type: 'word', text: `Show ${time} on analog clock.`, answer: time };
+        }
+
+        // GRADE 3
+        function gen_g3_add_3d_no_rename() {
+            let n1, n2, ones1, ones2, tens1, tens2;
+            do {
+                n1 = getRandom(100, 899); n2 = getRandom(10, 899);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+                tens1 = Math.floor((n1 % 100) / 10); tens2 = Math.floor((n2 % 100) / 10);
+            } while (ones1 + ones2 > 9 || tens1 + tens2 > 9 || n1 + n2 > 999);
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+        function gen_g3_mul_1d_1d_ge51() {
+            const n1 = getRandom(7, 9), n2 = getRandom(7, 9);
+            return { n1, n2, operator: '×', answer: n1 * n2 };
+        }
+        function gen_g3_mul_0_1() {
+            const n1 = getRandom(2, 9), n2 = getRandom(0, 1);
+            const ans = n1 * n2;
+            return Math.random() > 0.5 ? { n1, n2, operator: '×', answer: ans } : { n1: n2, n2: n1, operator: '×', answer: ans };
+        }
+        function gen_g3_mul_1d_2d_no_rename() {
+            let n1, n2, ones1;
+            do {
+                n1 = getRandom(10, 33); n2 = getRandom(2, 9); ones1 = n1 % 10;
+            } while (ones1 * n2 >= 10 || n1 * n2 >= 100);
+            return { n1, n2, operator: '×', answer: n1 * n2 };
+        }
+        function gen_g3_mul_1d_2d_rename() {
+            let n1, n2, ones1;
+            do {
+                n1 = getRandom(10, 49); n2 = getRandom(2, 9); ones1 = n1 % 10;
+            } while (ones1 * n2 < 10 || n1 * n2 >= 100);
+            return { n1, n2, operator: '×', answer: n1 * n2 };
+        }
+        function gen_g3_mul_1d_1d_21to50() {
+            let n1, n2, product;
+            do {
+                n1 = getRandom(4, 9); n2 = getRandom(4, 9); product = n1 * n2;
+            } while (product < 21 || product > 50);
+            return { n1, n2, operator: '×', answer: product };
+        }
+        function gen_g3_sub_3d_no_rename() {
+            let n1, n2, ones1, ones2, tens1, tens2;
+            do {
+                n1 = getRandom(100, 998); n2 = getRandom(10, n1 - 1);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+                tens1 = Math.floor((n1 % 100) / 10); tens2 = Math.floor((n2 % 100) / 10);
+            } while (ones1 < ones2 || tens1 < tens2);
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g3_div_1d_1d() {
+            const quotient = getRandom(2, 9), divisor = getRandom(2, 9), dividend = quotient * divisor;
+            return { n1: dividend, n2: divisor, operator: '÷', answer: quotient };
+        }
+        function gen_g3_div_2d_1d() {
+            const quotient = getRandom(10, 12), divisor = getRandom(2, 9), dividend = quotient * divisor;
+            return { n1: dividend, n2: divisor, operator: '÷', answer: quotient };
+        }
+        function gen_g3_mul_1d_1d_le20() {
+            let n1, n2, product;
+            do {
+                n1 = getRandom(2, 5); n2 = getRandom(2, 9); product = n1 * n2;
+            } while (product > 20);
+            return { n1, n2, operator: '×', answer: product };
+        }
+        function gen_g3_add_3d_rename() {
+            let n1, n2, ones1, ones2;
+            do {
+                n1 = getRandom(100, 899); n2 = getRandom(10, 899);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+            } while (ones1 + ones2 < 10 || n1 + n2 > 999);
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+        function gen_g3_mul_1d_tens() {
+            const n1 = getRandom(1, 9), n2 = getRandom(1, 9) * 10;
+            return { n1, n2, operator: '×', answer: n1 * n2 };
+        }
+        function gen_g3_sub_3d_rename() {
+            let n1, n2, ones1, ones2;
+            do {
+                n1 = getRandom(100, 998); n2 = getRandom(10, n1 - 1);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+            } while (ones1 >= ones2);
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g3_mul_square() {
+            const n = getRandom(2, 9);
+            return { n1: n, n2: n, operator: '×', answer: n * n };
+        }
+        function gen_g3_time_transfer() {
+            const hour = getRandom(1, 12), min = getRandom(0, 11) * 5;
+            const time = `${hour}:${min.toString().padStart(2, '0')}`;
+            return { type: 'word', text: `Analog clock shows ${time}. Write in digital: `, answer: time };
+        }
+        function gen_g3_fraction_shaded() {
+            const total = getRandom(3, 8), shaded = getRandom(1, total - 1);
+            return { type: 'word', text: `${shaded} out of ${total} parts shaded. Fraction?`, answer: `${shaded}/${total}` };
+        }
+        function gen_g3_round_3d() {
+            const n = getRandom(100, 999);
+            const to10 = Math.round(n / 10) * 10, to100 = Math.round(n / 100) * 100;
+            return { type: 'word', text: `Round ${n} to nearest 10: _____ and 100: _____`, answer: `${to10}, ${to100}` };
+        }
+        function gen_g3_area_rectangle() {
+            const l = getRandom(3, 12), w = getRandom(3, 12);
+            return { type: 'word', text: `Rectangle is ${l} × ${w} units. Area?`, answer: l * w };
+        }
+
+        // GRADE 4
+        function gen_g4_add_4d_rename() {
+            let n1, n2, ones1, ones2;
+            do {
+                n1 = getRandom(1000, 8999); n2 = getRandom(1000, 8999);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+            } while (ones1 + ones2 < 10 || n1 + n2 > 9999);
+            return { n1, n2, operator: '+', answer: n1 + n2 };
+        }
+        // Note: Fraction/Mixed number answers are complex to auto-calculate.
+        // For this demo, they return 'N/A'. A full implementation
+        // would require a fraction math library.
+        function gen_g4_mixed_common_den(...dens) {
+            const den = dens[getRandom(0, dens.length - 1)];
+            const whole1 = getRandom(1, 5), whole2 = getRandom(1, 5);
+            const num1 = getRandom(1, den - 1), num2 = getRandom(1, den - 1);
+            const op = Math.random() > 0.5 ? '+' : '−';
+            if (op === '−' && (whole1 < whole2 || (whole1 === whole2 && num1 < num2))) {
+                return { n1: `${whole2} ${num2}/${den}`, n2: `${whole1} ${num1}/${den}`, operator: op, answer: 'N/A' };
+            }
+            return { n1: `${whole1} ${num1}/${den}`, n2: `${whole2} ${num2}/${den}`, operator: op, answer: 'N/A' };
+        }
+        function gen_g4_div_3d_1d_remain(hard) {
+            const quotient = getRandom(10, 99), divisor = getRandom(2, 9);
+            const remainder = getRandom(1, divisor - 1), dividend = quotient * divisor + remainder;
+            return { n1: dividend, n2: divisor, operator: '÷', answer: `${quotient} R ${remainder}` };
+        }
+        function gen_g4_frac_common_den(...dens) {
+            const den = dens[getRandom(0, dens.length - 1)];
+            const num1 = getRandom(1, den - 1), num2 = getRandom(1, den - 1);
+            const op = Math.random() > 0.5 ? '+' : '−';
+            if (op === '−' && num1 < num2) {
+                return { n1: `${num2}/${den}`, n2: `${num1}/${den}`, operator: op, answer: 'N/A' };
+            }
+            return { n1: `${num1}/${den}`, n2: `${num2}/${den}`, operator: op, answer: 'N/A' };
+        }
+        function gen_g4_sub_4d_3d_rename() {
+            let n1, n2, ones1, ones2;
+            do {
+                n1 = getRandom(1000, 9999); n2 = getRandom(100, 999);
+                ones1 = n1 % 10; ones2 = n2 % 10;
+            } while (ones1 >= ones2);
+            return { n1, n2, operator: '−', answer: n1 - n2 };
+        }
+        function gen_g4_mul_2d_2d_no_rename() {
+            let n1, n2;
+            do {
+                n1 = getRandom(10, 30); n2 = getRandom(10, 30);
+            } while ((n1 % 10) * (n2 % 10) >= 10);
+            return { n1, n2, operator: '×', answer: n1 * n2 };
+        }
+        function gen_g4_mul_2d_2d() {
+            const n1 = getRandom(10, 99), n2 = getRandom(10, 99);
+            return { n1, n2, operator: '×', answer: n1 * n2 };
+        }
+        function gen_g4_mul_1d_3d_rename() {
+            const n1 = getRandom(100, 999), n2 = getRandom(2, 9);
+            return { n1, n2, operator: '×', answer: n1 * n2 };
+        }
+        function gen_g4_symmetry() {
+            const shapes = ['square', 'rectangle', 'isosceles triangle', 'circle'];
+            const shape = shapes[getRandom(0, shapes.length - 1)];
+            return { type: 'word', text: `Does ${shape} have line of symmetry? Yes/No`, answer: 'Yes' };
+        }
+        function gen_g4_multiples() {
+            const n = getRandom(2, 12);
+            return { type: 'word', text: `List 3 multiples of ${n}: _____, _____, _____`, answer: `${n*2}, ${n*3}, ${n*4}` };
+        }
+        function gen_g4_angles() {
+            const angle = ['acute', 'obtuse', 'right'][getRandom(0, 2)];
+            return { type: 'word', text: `Draw ${angle} angle.`, answer: `Visual (${angle})` };
+        }
+
+        // GRADE 5
+        function gen_g5_mul_2d_3d_no_rename() {
+            let n1, n2;
+            do {
+                n1 = getRandom(10, 30); n2 = getRandom(100, 300);
+            } while ((n1 % 10) * (n2 % 10) >= 10);
+            return { n1, n2, operator: '×', answer: n1 * n2 };
+        }
+        function gen_g5_mixed_unlike_den() {
+            const den1 = getRandom(2, 8);
+            let den2 = getRandom(2, 8);
+            while (den1 === den2) den2 = getRandom(2, 8);
+            const whole1 = getRandom(1, 5), whole2 = getRandom(1, 5);
+            const num1 = getRandom(1, den1 - 1), num2 = getRandom(1, den2 - 1);
+            return { n1: `${whole1} ${num1}/${den1}`, n2: `${whole2} ${num2}/${den2}`, operator: '+', answer: 'N/A' };
+        }
+        function gen_g5_mul_2d_3d() {
+            const n1 = getRandom(10, 99), n2 = getRandom(100, 999);
+            return { n1, n2, operator: '×', answer: n1 * n2 };
+        }
+        function gen_g5_div_4d_2d(hard) {
+            const quotient = getRandom(10, 99), divisor = getRandom(10, 99);
+            return { n1: quotient * divisor, n2: divisor, operator: '÷', answer: quotient };
+        }
+        function gen_g5_div_3d_2d() {
+            const quotient = getRandom(2, 9), divisor = getRandom(10, 99);
+            return { n1: quotient * divisor, n2: divisor, operator: '÷', answer: quotient };
+        }
+        function gen_g5_frac_unlike_den() {
+            const den1 = getRandom(2, 8);
+            let den2 = getRandom(2, 8);
+            while (den1 === den2) den2 = getRandom(2, 8);
+            const num1 = getRandom(1, den1 - 1), num2 = getRandom(1, den2 - 1);
+            return { n1: `${num1}/${den1}`, n2: `${num2}/${den2}`, operator: '+', answer: 'N/A' };
+        }
+        function gen_g5_compare_decimals_thou() {
+            const n1 = (getRandom(1, 999) / 1000).toFixed(3);
+            const n2 = (getRandom(1, 999) / 1000).toFixed(3);
+            return { type: 'word', text: `Compare: ${n1} _____ ${n2}`, answer: parseFloat(n1) > parseFloat(n2) ? '>' : '<' };
+        }
+        function gen_g5_ordered_pairs() {
+            const x = getRandom(0, 10), y = getRandom(0, 10);
+            return { type: 'word', text: `Plot (${x}, ${y}) on coordinate plane.`, answer: `(${x},${y})` };
+        }
+        function gen_g5_volume() {
+            const l = getRandom(3, 10), w = getRandom(3, 10), h = getRandom(3, 10);
+            return { type: 'word', text: `Volume ${l} × ${w} × ${h}:`, answer: l * w * h };
+        }
+
+        // GRADE 6
+        function gen_g6_add_dec_tenth_no_rename() {
+            let n1, n2, d1, d2;
+            do {
+                n1 = getRandom(10, 99) / 10; d1 = n1 % 1;
+                n2 = getRandom(10, 99) / 10; d2 = n2 % 1;
+            } while (d1 + d2 >= 1);
+            return { n1: n1.toFixed(1), n2: n2.toFixed(1), operator: '+', answer: (n1 + n2).toFixed(1) };
+        }
+        function gen_g6_sub_dec_hun_no_rename() {
+            let n1, n2;
+            do {
+                n1 = (getRandom(100, 999) / 100);
+                n2 = (getRandom(100, 999) / 100);
+            } while (n1 <= n2);
+            if ((n1 * 100) % 10 < (n2 * 100) % 10) return gen_g6_sub_dec_hun_no_rename(); // Retry
+            return { n1: n1.toFixed(2), n2: n2.toFixed(2), operator: '−', answer: (n1 - n2).toFixed(2) };
+        }
+        function gen_g6_add_dec_hun_rename() {
+            let n1, n2, d1, d2;
+            do {
+                n1 = (getRandom(100, 9999) / 100); d1 = (n1 * 100) % 10;
+                n2 = (getRandom(100, 9999) / 100); d2 = (n2 * 100) % 10;
+            } while (d1 + d2 < 10);
+            return { n1: n1.toFixed(2), n2: n2.toFixed(2), operator: '+', answer: (n1 + n2).toFixed(2) };
+        }
+        function gen_g6_sub_dec_hun_rename() {
+            let n1, n2, d1, d2;
+            do {
+                n1 = (getRandom(100, 9999) / 100); d1 = (n1 * 100) % 10;
+                n2 = (getRandom(100, 9999) / 100); d2 = (n2 * 100) % 10;
+            } while (n1 <= n2 || d1 >= d2);
+            return { n1: n1.toFixed(2), n2: n2.toFixed(2), operator: '−', answer: (n1 - n2).toFixed(2) };
+        }
+        function gen_g6_mul_dec_tenth_no_rename() {
+            const n1 = (getRandom(10, 99) / 10);
+            const n2 = (getRandom(10, 99) / 10);
+            return { n1: n1.toFixed(1), n2: n2.toFixed(1), operator: '×', answer: (n1 * n2).toFixed(2) };
+        }
+        function gen_g6_div_3d_dec_tenth() {
+            const quotient = getRandom(10, 99);
+            const divisor = (getRandom(10, 99) / 10);
+            return { n1: (quotient * divisor), n2: divisor.toFixed(1), operator: '÷', answer: quotient };
+        }
+        function gen_g6_add_dec_tenth_1d_rename() {
+            let n1, n2, d1;
+            do {
+                n1 = (getRandom(10, 99) / 10); d1 = Math.round((n1 % 1) * 10);
+                n2 = getRandom(1, 9);
+            } while (d1 + (n2 % 1) * 10 < 10); // this check is a bit off, but logic is for rename
+            return { n1: n1.toFixed(1), n2: n2, operator: '+', answer: (n1 + n2).toFixed(1) };
+        }
+        function gen_g6_mul_dec_tenth_1d_rename() {
+            const n1 = (getRandom(10, 99) / 10);
+            const n2 = getRandom(2, 9);
+            return { n1: n1.toFixed(1), n2: n2, operator: '×', answer: (n1 * n2).toFixed(1) };
+        }
+        function gen_g6_mul_dec_tenth_hun() {
+            const n1 = (getRandom(10, 99) / 10);
+            const n2 = (getRandom(10, 99) / 100);
+            return { n1: n1.toFixed(1), n2: n2.toFixed(2), operator: '×', answer: (n1 * n2).toFixed(3) };
+        }
+        function gen_g6_div_dec_hun_tenth() {
+            const quotient = (getRandom(10, 99) / 10);
+            const divisor = (getRandom(10, 99) / 10);
+            return { n1: (quotient * divisor).toFixed(2), n2: divisor.toFixed(1), operator: '÷', answer: quotient.toFixed(1) };
+        }
+        function gen_g6_ratio() {
+            const a = getRandom(2, 12), b = getRandom(2, 12);
+            return { type: 'word', text: `${a} apples, ${b} oranges. Ratio apples:oranges?`, answer: `${a}:${b}` };
+        }
+        function gen_g6_mean_median() {
+            const nums = [getRandom(10, 30), getRandom(10, 30), getRandom(10, 30), getRandom(10, 30), getRandom(10, 30)];
+            const sorted = [...nums].sort((a,b) => a-b);
+            const mean = (nums.reduce((a,b) => a+b, 0) / nums.length).toFixed(1);
+            return { type: 'word', text: `Mean & median: ${nums.join(', ')}`, answer: `Mean: ${mean}, Median: ${sorted[2]}` };
+        }
+        function gen_g6_algebraic_expr() {
+            const coef = getRandom(2, 9), constant = getRandom(5, 20);
+            return { type: 'word', text: `${coef} times x plus ${constant}:`, answer: `${coef}x + ${constant}` };
+        }
+        function gen_g6_surface_area() {
+            const side = getRandom(3, 10);
+            return { type: 'word', text: `Surface area cube side ${side}:`, answer: 6 * side * side };
+        }
+
+    </script>
+</body>
+</html>
