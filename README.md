@@ -22,7 +22,7 @@ This tool generates customizable math worksheets for all Acadience™ Math skill
 
 ## Usage
 
-1. Open `index.html` in a web browser
+1. Open [LINK]([url](https://smobro30.github.io/acadience-math-cbm-generator/) in a web browser
 2. Select the grade level
 3. Choose the skill type (Computation or Concepts/Applications)
 4. Select the specific skill to practice
@@ -38,8 +38,8 @@ This tool generates customizable math worksheets for all Acadience™ Math skill
 
 ## License
 
-This tool is designed for educational use with Acadience™ Math curriculum materials.
+This tool is designed for educational use and inspired by the Acadience™ Math curriculum materials.
 
 ## Getting Started
 
-Simply open the `index.html` file in any modern web browser to start generating worksheets. No installation or setup required.
+Simply open the [LINK]([url](https://smobro30.github.io/acadience-math-cbm-generator/)) in any modern web browser to start generating worksheets. No installation or setup required.
